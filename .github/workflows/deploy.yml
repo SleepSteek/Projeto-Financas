@@ -61,6 +61,16 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
 
+      - name: Verify Injection (Debug)
+        run: |
+          echo "Verificando se o placeholder ainda existe no arquivo final..."
+          if grep -q "__SUPABASE_URL__" js/supabase.js; then
+            echo "::error::ERRO: O placeholder ainda está no arquivo! A substituição falhou."
+            exit 1
+          else
+            echo "Sucesso: Placeholder substituído com sucesso."
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
