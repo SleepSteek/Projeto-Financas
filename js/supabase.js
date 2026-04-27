@@ -71,6 +71,40 @@ export async function addTransaction(transaction) {
 }
 
 /**
+ * Delete a single transaction
+ */
+export async function deleteTransaction(id) {
+    if (!supabase) return false;
+    try {
+        const { error } = await supabase
+            .from('transactions')
+            .delete()
+            .eq('id', id);
+        return !error;
+    } catch (error) {
+        console.error('Error deleting transaction:', error);
+        return false;
+    }
+}
+
+/**
+ * Delete a single transaction
+ */
+export async function deleteTransaction(id) {
+    if (!supabase) return false;
+    try {
+        const { error } = await supabase
+            .from('transactions')
+            .delete()
+            .eq('id', id);
+        return !error;
+    } catch (error) {
+        console.error('Error deleting transaction:', error);
+        return false;
+    }
+}
+
+/**
  * Delete one or more transactions
  */
 export async function deleteTransactions(ids) {
