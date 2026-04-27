@@ -12,9 +12,9 @@ const CONFIG = {
  * Inicializa o cliente Supabase com segurança
  */
 function initSupabase() {
+    // Verifica se a URL foi injetada (não é vazia e começa com http)
     const isConfigured = CONFIG.url && 
-                        CONFIG.url !== '__SUPABASE_URL__' && 
-                        CONFIG.url !== '' &&
+                        CONFIG.url.length > 10 &&
                         CONFIG.url.startsWith('http');
 
     if (!isConfigured) {

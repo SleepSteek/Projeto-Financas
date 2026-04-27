@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinTrack Pro | Controle de Finanças Inteligente</title>
+    <title>Controle de Finanças Inteligente</title>
     <meta name="description"
         content="Sistema de controle financeiro com integração automática de transações via Gmail e Supabase.">
     <link rel="stylesheet" href="style.css">
@@ -95,7 +95,8 @@
                 </div>
 
                 <!-- Wallet Specific Stats -->
-                <div id="dashboard-wallets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div id="dashboard-wallets-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                     <!-- Cards dinâmicos das carteiras -->
                 </div>
 
@@ -145,7 +146,8 @@
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                         <h2>Todas as Transações</h2>
                         <div style="display: flex; gap: 1rem; align-items: center;">
-                            <button class="btn btn-danger" id="btn-delete-selected" style="display: none; padding: 0.5rem 1rem; background: var(--danger);">
+                            <button class="btn btn-danger" id="btn-delete-selected"
+                                style="display: none; padding: 0.5rem 1rem; background: var(--danger);">
                                 <span class="material-symbols-rounded">delete_sweep</span> Excluir Selecionados
                             </button>
                             <select id="filter-wallet" class="card"
@@ -205,10 +207,11 @@
                                 por Remetente (ex: nubank.com.br)</label>
                             <input type="text" id="sync-sender" value="from:nubank.com.br"
                                 style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white; margin-bottom: 1rem;">
-                            
+
                             <label
-                                style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Período de Busca</label>
-                            <select id="sync-period" 
+                                style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Período
+                                de Busca</label>
+                            <select id="sync-period"
                                 style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white; margin-bottom: 1rem;">
                                 <option value="1d">Último Dia</option>
                                 <option value="7d">Última Semana</option>
@@ -266,37 +269,42 @@
             <section id="view-settings" style="display: none;">
                 <div class="card" style="max-width: 600px; margin: 0 auto;">
                     <h2 style="margin-bottom: 2rem;">Configurações do Sistema</h2>
-                    
+
                     <form id="form-settings">
                         <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nome do Aplicativo</label>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nome do
+                                Aplicativo</label>
                             <input type="text" id="settings-app-title" placeholder="Ex: FinTrack Pro"
                                 style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
                         </div>
 
                         <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
-                        
+
                         <h3 style="margin-bottom: 1rem;">Perfil do Usuário</h3>
-                        
+
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nome Completo</label>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nome
+                                Completo</label>
                             <input type="text" id="settings-user-name" placeholder="Seu nome"
                                 style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
                         </div>
 
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Login / E-mail</label>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Login /
+                                E-mail</label>
                             <input type="email" id="settings-user-email" placeholder="seu@email.com"
                                 style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
                         </div>
 
                         <div style="margin-bottom: 2rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nova Senha</label>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nova
+                                Senha</label>
                             <input type="password" id="settings-user-password" placeholder="Criar nova senha"
                                 style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
                         </div>
 
-                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1rem;">
+                        <button type="submit" class="btn btn-primary"
+                            style="width: 100%; justify-content: center; padding: 1rem;">
                             <span class="material-symbols-rounded">save</span> Salvar Alterações
                         </button>
                     </form>
