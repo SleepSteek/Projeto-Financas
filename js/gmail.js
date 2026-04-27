@@ -2,7 +2,7 @@
  * Gmail API Integration Module
  */
 
-const CLIENT_ID = 'const CLIENT_ID = import.meta.env.VITE_GMAIL_CLIENT_ID';
+const CLIENT_ID = 'VITE_GMAIL_CLIENT_ID';
 const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 
 let tokenClient;

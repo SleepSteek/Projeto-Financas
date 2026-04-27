@@ -3,8 +3,8 @@
  */
 
 // Replace these with your actual Supabase project details
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = VITE_SUPABASE_ANON_KEY;
 
 export const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
