@@ -2,9 +2,9 @@
  * Supabase Integration Module
  */
 
-// Replace these with your actual Supabase project details
-const SUPABASE_URL = VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = VITE_SUPABASE_ANON_KEY;
+// Valores injetados pelo GitHub Actions no deploy
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
 
 export const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
