@@ -2,7 +2,7 @@
  * Gmail API Integration Module
  */
 
-const CLIENT_ID = '849568304785-fg90eu74tc7571s4fip0qbahmfpqi3i1.apps.googleusercontent.com';
+const CLIENT_ID = 'const CLIENT_ID = import.meta.env.VITE_GMAIL_CLIENT_ID';
 const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 
 let tokenClient;
@@ -27,12 +27,12 @@ export function initGoogleAuth() {
                     throw (tokenResponse);
                 }
                 accessToken = tokenResponse.access_token;
-                
+
                 // Salva o token e a expiração (expires_in é em segundos)
                 const expiryTime = Date.now() + (tokenResponse.expires_in * 1000);
                 localStorage.setItem('gmail_access_token', accessToken);
                 localStorage.setItem('gmail_token_expiry', expiryTime);
-                
+
                 console.log('Access token acquired and persisted');
                 document.dispatchEvent(new CustomEvent('gmail-connected'));
             },
@@ -79,12 +79,12 @@ export async function fetchTransactionEmails(config = {}) {
     try {
         const { sender = 'from:nubank.com.br', period = '30d' } = config;
         // Filtramos por remetente e garantimos e-mails do período selecionado
-        let query = `${sender} newer_than:${period}`; 
+        let query = `${sender} newer_than:${period}`;
 
         const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=20`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-        
+
         if (response.status === 401) {
             console.warn('Gmail access token expired or invalid');
             accessToken = null;
@@ -111,7 +111,7 @@ export async function fetchTransactionEmails(config = {}) {
             }
 
             const details = await detailResponse.json();
-            
+
             const headers = details.payload.headers;
             const subject = headers.find(h => h.name === 'Subject')?.value || 'Sem Assunto';
             const fromHeader = headers.find(h => h.name === 'From')?.value || '';
@@ -124,10 +124,10 @@ export async function fetchTransactionEmails(config = {}) {
             let bodyText = details.snippet;
             if (details.payload.parts) {
                 // Tenta achar texto puro, se não achar tenta HTML
-                const part = details.payload.parts.find(p => p.mimeType === 'text/plain') || 
-                             details.payload.parts.find(p => p.mimeType === 'text/html') ||
-                             details.payload.parts[0];
-                
+                const part = details.payload.parts.find(p => p.mimeType === 'text/plain') ||
+                    details.payload.parts.find(p => p.mimeType === 'text/html') ||
+                    details.payload.parts[0];
+
                 if (part.body.data) {
                     bodyText = b64DecodeUnicode(part.body.data);
                 } else if (part.parts) {
@@ -144,9 +144,9 @@ export async function fetchTransactionEmails(config = {}) {
 
             // Regex para capturar valor (R$ 1.234,56 ou apenas 1.234,56)
             const amountRegex = /(?:R\$|valor de|total de|transferência de|recebeu um Pix de|pagou|valor:)\s?(\d+(?:\.\d{3})*(?:,\d{2}))/i;
-            
+
             let match = cleanBody.match(amountRegex) || subject.match(amountRegex);
-            
+
             if (!match) {
                 match = cleanBody.match(/R\$\s?(\d+(?:\.\d{3})*(?:,\d{2}))/i);
             }
@@ -160,11 +160,11 @@ export async function fetchTransactionEmails(config = {}) {
                 // 1. Padrões de Recebimento (Payer)
                 /(?:recebeu uma transferência pelo Pix de|recebeu um Pix de|recebeu uma transferência de|enviado por)\s+(.+?)(?=\s+no valor|\s+foi realizada|\s+já está|\s+-|\n|$)/i,
                 /(?:Nome|Pagador|Origem)\s*:\s*([^.\n]+)/i,
-                
+
                 // 2. Padrões de Envio (Payee)
                 /(?:transferiu para|enviou para|enviado para|A transferência para)\s+(.+?)(?=\s+foi realizada|\s+-|\n|$)/i,
                 /(?:Destinatário|Para)\s*:\s*([^.\n]+)/i,
-                
+
                 // 3. Padrão Genérico (Fallback)
                 /Pix de\s+(.+?)(?=\s+no valor|\s+foi realizada|\.|\n|$)/i
             ];
@@ -174,7 +174,7 @@ export async function fetchTransactionEmails(config = {}) {
                 const eMatch = cleanBody.match(pattern);
                 if (eMatch && eMatch[1]) {
                     let extracted = eMatch[1].trim();
-                    
+
                     // Remove ruídos comuns em e-mails de transação (ex: Nubank)
                     extracted = extracted.replace(/\s*foi realizada com sucesso.*$/i, '');
                     extracted = extracted.replace(/\s*já está disponível.*$/i, '');
@@ -187,14 +187,14 @@ export async function fetchTransactionEmails(config = {}) {
                     extracted = extracted.replace(/\s*Agência.*$/i, '');
                     extracted = extracted.replace(/\s*Conta.*$/i, '');
                     extracted = extracted.replace(/\s*Data.*$/i, '');
-                    
+
                     // Se o resultado ficou muito curto ou parece ser parte de uma frase (contém "você", "seu", etc), ignoramos
                     if (extracted.length < 2 || /\b(você|seu|sua|com|para)\b/i.test(extracted)) {
                         continue;
                     }
 
                     entityName = extracted.trim();
-                    
+
                     // Limpa nomes muito longos ou com sujeira de HTML
                     if (entityName.length > 50) entityName = entityName.substring(0, 50).trim();
                     break;
@@ -222,7 +222,7 @@ export async function fetchTransactionEmails(config = {}) {
 function b64DecodeUnicode(str) {
     // Replace non-url compatible chars
     str = str.replace(/-/g, '+').replace(/_/g, '/');
-    return decodeURIComponent(atob(str).split('').map(function(c) {
+    return decodeURIComponent(atob(str).split('').map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
 }

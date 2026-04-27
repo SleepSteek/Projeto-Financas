@@ -3,8 +3,8 @@
  */
 
 // Replace these with your actual Supabase project details
-const SUPABASE_URL = 'https://zdheslttvzzecrixzuxp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkaGVzbHR0dnp6ZWNyaXh6dXhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNDgzODYsImV4cCI6MjA5MjYyNDM4Nn0.xVkcLAl8YrPAjglFddd_YZIeMfKL6d63vBC7RDeVs4g';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
