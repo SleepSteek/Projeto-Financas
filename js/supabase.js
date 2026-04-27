@@ -2,35 +2,53 @@
  * Supabase Integration Module
  */
 
-// Valores injetados pelo GitHub Actions no deploy
-const SUPABASE_URL = '__SUPABASE_URL__';
-const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+// Placeholders para o GitHub Actions
+const CONFIG = {
+    url: '__SUPABASE_URL__',
+    key: '__SUPABASE_ANON_KEY__'
+};
 
-// Guarda contra placeholder não substituído (secrets não configurados no GitHub)
-const _supabaseReady = SUPABASE_URL && SUPABASE_URL !== '__SUPABASE_URL__' && SUPABASE_URL.startsWith('http');
-if (!_supabaseReady) {
-    console.error('[FinTrack] ERRO: Supabase URL não foi injetada. Configure os Repository Secrets no GitHub (SUPABASE_URL, SUPABASE_ANON_KEY, GMAIL_CLIENT_ID).');
+/**
+ * Inicializa o cliente Supabase com segurança
+ */
+function initSupabase() {
+    const isConfigured = CONFIG.url && 
+                        CONFIG.url !== '__SUPABASE_URL__' && 
+                        CONFIG.url !== '' &&
+                        CONFIG.url.startsWith('http');
+
+    if (!isConfigured) {
+        console.warn('[FinTrack] Supabase não configurado. Verifique os Secrets no GitHub.');
+        return null;
+    }
+
+    if (!window.supabase) {
+        console.error('[FinTrack] Biblioteca Supabase-js não carregada.');
+        return null;
+    }
+
+    return window.supabase.createClient(CONFIG.url, CONFIG.key);
 }
 
-export const supabase = (window.supabase && _supabaseReady)
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    : null;
+export const supabase = initSupabase();
 
 /**
  * Fetch all transactions from Supabase
  */
 export async function getTransactions() {
     if (!supabase) return [];
-    const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('date', { ascending: false });
+    try {
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('*')
+            .order('date', { ascending: false });
 
-    if (error) {
+        if (error) throw error;
+        return data;
+    } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
     }
-    return data;
 }
 
 /**
@@ -38,34 +56,35 @@ export async function getTransactions() {
  */
 export async function addTransaction(transaction) {
     if (!supabase) return null;
-    const { data, error } = await supabase
-        .from('transactions')
-        .insert([transaction])
-        .select();
+    try {
+        const { data, error } = await supabase
+            .from('transactions')
+            .insert([transaction])
+            .select();
 
-    if (error) {
+        if (error) throw error;
+        return data ? data[0] : null;
+    } catch (error) {
         console.error('Error adding transaction:', error);
         return null;
     }
-    return data[0];
 }
 
 /**
- * Delete a transaction
- */
-export async function deleteTransaction(id) {
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) console.error('Error deleting:', error);
-    return !error;
-}
-
-/**
- * Delete multiple transactions
+ * Delete one or more transactions
  */
 export async function deleteTransactions(ids) {
-    const { error } = await supabase.from('transactions').delete().in('id', ids);
-    if (error) console.error('Error deleting multiple:', error);
-    return !error;
+    if (!supabase) return false;
+    try {
+        const { error } = await supabase
+            .from('transactions')
+            .delete()
+            .in('id', ids);
+        return !error;
+    } catch (error) {
+        console.error('Error deleting transactions:', error);
+        return false;
+    }
 }
 
 /**
@@ -73,17 +92,19 @@ export async function deleteTransactions(ids) {
  */
 export async function updateTransaction(id, updates) {
     if (!supabase) return null;
-    const { data, error } = await supabase
-        .from('transactions')
-        .update(updates)
-        .eq('id', id)
-        .select();
+    try {
+        const { data, error } = await supabase
+            .from('transactions')
+            .update(updates)
+            .eq('id', id)
+            .select();
 
-    if (error) {
+        if (error) throw error;
+        return data ? data[0] : null;
+    } catch (error) {
         console.error('Error updating transaction:', error);
         return null;
     }
-    return data[0];
 }
 
 /**
@@ -91,44 +112,65 @@ export async function updateTransaction(id, updates) {
  */
 export async function getWallets() {
     if (!supabase) return [];
-    const { data } = await supabase.from('wallets').select('*');
-    return data || [];
+    try {
+        const { data, error } = await supabase.from('wallets').select('*');
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching wallets:', error);
+        return [];
+    }
 }
 
 export async function addWallet(name) {
     if (!supabase) return null;
-    const { data } = await supabase.from('wallets').insert([{ name }]).select();
-    return data ? data[0] : null;
+    try {
+        const { data, error } = await supabase.from('wallets').insert([{ name }]).select();
+        if (error) throw error;
+        return data ? data[0] : null;
+    } catch (error) {
+        console.error('Error adding wallet:', error);
+        return null;
+    }
 }
 
 export async function deleteWallet(id) {
     if (!supabase) return false;
-    const { error } = await supabase.from('wallets').delete().eq('id', id);
-    return !error;
-}
-
-
-/**
- * Sync Config Logic
- */
-export async function getSyncConfig() {
-    if (!supabase) return null;
-    const { data } = await supabase.from('sync_configs').select('*').limit(1);
-    return data ? data[0] : null;
+    try {
+        const { error } = await supabase.from('wallets').delete().eq('id', id);
+        return !error;
+    } catch (error) {
+        console.error('Error deleting wallet:', error);
+        return false;
+    }
 }
 
 /**
- * Sync Rules Logic (Learning)
+ * Sync Rules Logic
  */
 export async function getRules() {
     if (!supabase) return [];
-    const { data } = await supabase.from('transaction_rules').select('*');
-    return data || [];
+    try {
+        const { data, error } = await supabase.from('transaction_rules').select('*');
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching rules:', error);
+        return [];
+    }
 }
 
 export async function saveRule(rule) {
     if (!supabase) return null;
-    const { data, error } = await supabase.from('transaction_rules').upsert(rule, { onConflict: 'subject' }).select();
-    if (error) console.error('Erro ao salvar regra:', error);
-    return data ? data[0] : null;
+    try {
+        const { data, error } = await supabase
+            .from('transaction_rules')
+            .upsert(rule, { onConflict: 'subject' })
+            .select();
+        if (error) throw error;
+        return data ? data[0] : null;
+    } catch (error) {
+        console.error('Error saving rule:', error);
+        return null;
+    }
 }
