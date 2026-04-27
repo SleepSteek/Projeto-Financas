@@ -2,7 +2,12 @@
  * Gmail API Integration Module
  */
 
-const CLIENT_ID = '__GMAIL_CLIENT_ID__';
+// Placeholders para o GitHub Actions
+const CONFIG = {
+    clientId: '__GMAIL_CLIENT_ID__'
+};
+const CLIENT_ID = CONFIG.clientId;
+
 const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 
 let tokenClient;
