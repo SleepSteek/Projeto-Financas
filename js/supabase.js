@@ -90,16 +90,19 @@ export async function updateTransaction(id, updates) {
  * Wallets Logic
  */
 export async function getWallets() {
+    if (!supabase) return [];
     const { data } = await supabase.from('wallets').select('*');
     return data || [];
 }
 
 export async function addWallet(name) {
+    if (!supabase) return null;
     const { data } = await supabase.from('wallets').insert([{ name }]).select();
     return data ? data[0] : null;
 }
 
 export async function deleteWallet(id) {
+    if (!supabase) return false;
     const { error } = await supabase.from('wallets').delete().eq('id', id);
     return !error;
 }
@@ -109,6 +112,7 @@ export async function deleteWallet(id) {
  * Sync Config Logic
  */
 export async function getSyncConfig() {
+    if (!supabase) return null;
     const { data } = await supabase.from('sync_configs').select('*').limit(1);
     return data ? data[0] : null;
 }
@@ -117,11 +121,13 @@ export async function getSyncConfig() {
  * Sync Rules Logic (Learning)
  */
 export async function getRules() {
+    if (!supabase) return [];
     const { data } = await supabase.from('transaction_rules').select('*');
     return data || [];
 }
 
 export async function saveRule(rule) {
+    if (!supabase) return null;
     const { data, error } = await supabase.from('transaction_rules').upsert(rule, { onConflict: 'subject' }).select();
     if (error) console.error('Erro ao salvar regra:', error);
     return data ? data[0] : null;
