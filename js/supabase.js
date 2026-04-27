@@ -6,7 +6,15 @@
 const SUPABASE_URL = '__SUPABASE_URL__';
 const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
 
-export const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+// Guarda contra placeholder não substituído (secrets não configurados no GitHub)
+const _supabaseReady = SUPABASE_URL && SUPABASE_URL !== '__SUPABASE_URL__' && SUPABASE_URL.startsWith('http');
+if (!_supabaseReady) {
+    console.error('[FinTrack] ERRO: Supabase URL não foi injetada. Configure os Repository Secrets no GitHub (SUPABASE_URL, SUPABASE_ANON_KEY, GMAIL_CLIENT_ID).');
+}
+
+export const supabase = (window.supabase && _supabaseReady)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
 
 /**
  * Fetch all transactions from Supabase

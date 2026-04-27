@@ -25,6 +25,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then echo "::error::Secret SUPABASE_URL is missing!"; exit 1; fi
+          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then echo "::error::Secret SUPABASE_ANON_KEY is missing!"; exit 1; fi
+          if [ -z "${{ secrets.GMAIL_CLIENT_ID }}" ]; then echo "::error::Secret GMAIL_CLIENT_ID is missing!"; exit 1; fi
+          echo "All secrets are present ✓"
+
       - name: Inject secrets into JS files
         run: |
           sed -i "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g" js/supabase.js
