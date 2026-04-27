@@ -18,12 +18,6 @@ function initSupabase() {
                         CONFIG.url.startsWith('http');
 
     if (!isConfigured) {
-        console.warn('[FinTrack] Supabase não configurado:', { 
-            temUrl: !!CONFIG.url, 
-            ePlaceholder: CONFIG.url === '__SUPABASE_URL__',
-            vazio: CONFIG.url === '',
-            comecaComHttp: CONFIG.url ? CONFIG.url.startsWith('http') : false
-        });
         return null;
     }
 

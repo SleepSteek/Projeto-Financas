@@ -1,4 +1,4 @@
-import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, getWallets, addWallet, deleteWallet, getRules, saveRule } from './supabase.js';
+import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, getWallets, addWallet, deleteWallet, getRules, saveRule } from './supabase.js?v=1.0.3';
 import { initGoogleAuth, connectGmail, fetchTransactionEmails } from './gmail.js';
 
 // State
