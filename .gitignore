@@ -1,0 +1,10 @@
+# Arquivo de variáveis de ambiente (onde você guardará suas chaves reais)
+.env
+
+# Pastas de sistema e editores
+.vscode/
+node_modules/
+.DS_Store
+
+# Logs
+*.log

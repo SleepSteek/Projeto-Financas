@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack Pro | Controle de Finanças Inteligente</title>
+    <meta name="description"
+        content="Sistema de controle financeiro com integração automática de transações via Gmail e Supabase.">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts & Icons -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google API & Identity Services -->
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo" style="margin-bottom: 3rem; padding-left: 1rem;">
+                <h2 style="color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="material-symbols-rounded">payments</span>
+                    <span class="nav-text" id="app-title-text">FinTrack</span>
+                </h2>
+            </div>
+
+            <nav>
+                <a href="#" class="nav-item active" id="nav-dashboard">
+                    <span class="material-symbols-rounded">dashboard</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" id="nav-transactions">
+                    <span class="material-symbols-rounded">receipt_long</span>
+                    <span class="nav-text">Transações</span>
+                </a>
+                <a href="#" class="nav-item" id="nav-wallets">
+                    <span class="material-symbols-rounded">account_balance_wallet</span>
+                    <span class="nav-text">Carteiras</span>
+                </a>
+                <a href="#" class="nav-item" id="nav-sync">
+                    <span class="material-symbols-rounded">sync</span>
+                    <span class="nav-text">Sincronizar E-mail</span>
+                </a>
+                <a href="#" class="nav-item" id="nav-settings">
+                    <span class="material-symbols-rounded">settings</span>
+                    <span class="nav-text">Configurações</span>
+                </a>
+            </nav>
+
+            <div style="margin-top: auto; padding: 1rem;">
+                <button class="btn btn-primary" style="width: 100%; justify-content: center;" id="btn-new-transaction">
+                    <span class="material-symbols-rounded">add</span>
+                    <span class="nav-text">Novo</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <h1 class="animate-fade-in">Olá, <span id="user-display-name">Vini</span>!</h1>
+                    <p style="color: var(--text-muted);">Aqui está o resumo da sua saúde financeira.</p>
+                </div>
+                <div id="auth-status" class="card" style="margin-bottom: 0; padding: 0.5rem 1rem; border-radius: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="material-symbols-rounded" style="color: var(--success);">check_circle</span>
+                        <span style="font-size: 0.875rem;">Conectado</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <section id="view-dashboard">
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <span class="stat-label">Saldo Total</span>
+                        <span class="stat-value">R$ 0,00</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="stat-label">Entradas (Mês)</span>
+                        <span class="stat-value" style="color: var(--success);">R$ 0,00</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="stat-label">Saídas (Mês)</span>
+                        <span class="stat-value" style="color: var(--danger);">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Wallet Specific Stats -->
+                <div id="dashboard-wallets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <!-- Cards dinâmicos das carteiras -->
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                    <div class="card">
+                        <h3>Fluxo de Caixa</h3>
+                        <div style="height: 300px; margin-top: 1rem;">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Gastos por Categoria</h3>
+                        <div style="height: 300px; margin-top: 1rem;">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>Últimas Transações</h3>
+                        <button class="btn" style="padding: 0.5rem 1rem;">Ver todas</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-transactions-list">
+                                <!-- As transações serão carregadas aqui via Supabase -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View Transações (Full List) -->
+            <section id="view-transactions" style="display: none;">
+                <div class="card">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2>Todas as Transações</h2>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <button class="btn btn-danger" id="btn-delete-selected" style="display: none; padding: 0.5rem 1rem; background: var(--danger);">
+                                <span class="material-symbols-rounded">delete_sweep</span> Excluir Selecionados
+                            </button>
+                            <select id="filter-wallet" class="card"
+                                style="margin: 0; padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--surface); color: var(--text);">
+                                <option value="all">Todas as Carteiras</option>
+                            </select>
+                            <select id="filter-type" class="card"
+                                style="margin: 0; padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--surface); color: var(--text);">
+                                <option value="all">Todos os Tipos</option>
+                                <option value="income">Entrada</option>
+                                <option value="expense">Saída</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="select-all-txs"></th>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th>Carteira</th>
+                                    <th>Valor</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="full-transactions-list"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View Carteiras -->
+            <section id="view-wallets" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Minhas Carteiras</h2>
+                    <button class="btn btn-primary" id="btn-add-wallet">
+                        <span class="material-symbols-rounded">add</span> Adicionar Carteira
+                    </button>
+                </div>
+                <div class="stats-grid" id="wallets-grid">
+                    <!-- Carteiras serão carregadas aqui -->
+                </div>
+            </section>
+
+            <!-- Sync Section -->
+            <section id="view-sync" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="card" style="text-align: center; padding: 2rem;">
+                        <span class="material-symbols-rounded"
+                            style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">mail</span>
+                        <h2>Busca Gmail</h2>
+                        <div style="margin: 1.5rem 0; text-align: left;">
+                            <label
+                                style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Filtrar
+                                por Remetente (ex: nubank.com.br)</label>
+                            <input type="text" id="sync-sender" value="from:nubank.com.br"
+                                style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white; margin-bottom: 1rem;">
+                            
+                            <label
+                                style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Período de Busca</label>
+                            <select id="sync-period" 
+                                style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white; margin-bottom: 1rem;">
+                                <option value="1d">Último Dia</option>
+                                <option value="7d">Última Semana</option>
+                                <option value="30d" selected>Último Mês</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="btn-connect-gmail" style="width: 100%;">
+                            <span class="material-symbols-rounded">login</span> Conectar & Buscar
+                        </button>
+                        <button class="btn" id="btn-sync-now"
+                            style="display: none; width: 100%; margin-top: 1rem; border: 1px solid var(--primary); color: var(--primary);">
+                            <span class="material-symbols-rounded">sync</span> Buscar E-mails
+                        </button>
+                    </div>
+
+                    <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+                        <h3>Como funciona a Triagem</h3>
+                        <p style="color: var(--text-muted); margin-top: 1rem; font-size: 0.875rem; line-height: 1.6;">
+                            1. Digite o remetente e clique em buscar.<br>
+                            2. Classifique os e-mails encontrados na tabela abaixo.<br>
+                            3. O sistema <b>aprenderá</b> suas escolhas para e-mails futuros com o mesmo assunto.<br>
+                            4. Clique em "Salvar" para registrar a transação e a regra.
+                        </p>
+                    </div>
+
+                    <div class="card" style="grid-column: span 2;">
+                        <h3>E-mails para Triagem</h3>
+                        <div class="table-container" style="margin-top: 1rem;">
+                            <table style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Assunto</th>
+                                        <th>Valor</th>
+                                        <th>Tipo</th>
+                                        <th>Categoria</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sync-results-list">
+                                    <tr>
+                                        <td colspan="6"
+                                            style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                            Nenhum e-mail buscado ainda.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="view-settings" style="display: none;">
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <h2 style="margin-bottom: 2rem;">Configurações do Sistema</h2>
+                    
+                    <form id="form-settings">
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nome do Aplicativo</label>
+                            <input type="text" id="settings-app-title" placeholder="Ex: FinTrack Pro"
+                                style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        </div>
+
+                        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
+                        
+                        <h3 style="margin-bottom: 1rem;">Perfil do Usuário</h3>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nome Completo</label>
+                            <input type="text" id="settings-user-name" placeholder="Seu nome"
+                                style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Login / E-mail</label>
+                            <input type="email" id="settings-user-email" placeholder="seu@email.com"
+                                style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        </div>
+
+                        <div style="margin-bottom: 2rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Nova Senha</label>
+                            <input type="password" id="settings-user-password" placeholder="Criar nova senha"
+                                style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1rem;">
+                            <span class="material-symbols-rounded">save</span> Salvar Alterações
+                        </button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Nova Transação -->
+    <div id="modal-transaction" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card animate-fade-in" style="width: 400px; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Nova Transação</h3>
+            <form id="form-transaction">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Descrição</label>
+                    <input type="text" id="desc" required
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Valor (R$)</label>
+                    <input type="number" step="0.01" id="amount" required
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Carteira</label>
+                    <select id="wallet-select" required
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        <!-- Opções de carteiras via JS -->
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Tipo</label>
+                    <select id="type-select" required
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        <option value="expense">Saída</option>
+                        <option value="income">Entrada</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Categoria</label>
+                    <select id="category"
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        <option value="Geral">Geral</option>
+                        <option value="Reparos">Reparos</option>
+                        <option value="Marido de Aluguel">Marido de Aluguel</option>
+                        <option value="Faxina">Faxina</option>
+                        <option value="Alimentação">Alimentação</option>
+                        <option value="Moradia">Moradia</option>
+                        <option value="Lazer">Lazer</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Renda">Renda</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" class="btn" style="flex: 1; background: var(--surface-light);"
+                        id="btn-cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
