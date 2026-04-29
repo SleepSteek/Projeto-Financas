@@ -566,11 +566,17 @@ async function runTriage() {
                     let autoDesc = email.entityName || (email.senderName ? `${email.senderName}: ${email.subject}` : email.subject);
                     autoDesc = applyNameRules(autoDesc);
 
+                    let finalCategory = rule.category;
+                    const pastTx = existingTxs.slice().reverse().find(tx => tx.description === autoDesc);
+                    if (pastTx && pastTx.category) {
+                        finalCategory = pastTx.category;
+                    }
+
                     const tx = {
                         date: email.date,
                         description: autoDesc,
                         amount: rule.amount_type === 'income' ? Math.abs(email.amount) : -Math.abs(email.amount),
-                        category: rule.category,
+                        category: finalCategory,
                         wallet_id: bankWallet?.id,
                         source: `gmail:${email.id}`
                     };
@@ -584,6 +590,13 @@ async function runTriage() {
             const row = document.createElement('tr');
             const displayDesc = email.entityName || (email.senderName ? `${email.senderName}: ${email.subject}` : email.subject);
             
+            let finalDesc = applyNameRules(displayDesc);
+            let suggestedCategory = 'Geral';
+            const pastTxForTriage = existingTxs.slice().reverse().find(tx => tx.description === finalDesc);
+            if (pastTxForTriage && pastTxForTriage.category) {
+                suggestedCategory = pastTxForTriage.category;
+            }
+
             row.innerHTML = `
                 <td>${new Date(email.date).toLocaleDateString('pt-BR')}</td>
                 <td title="${email.snippet}">${displayDesc}</td>
@@ -596,7 +609,7 @@ async function runTriage() {
                 </td>
                 <td>
                     <select class="triage-category" style="background:var(--surface);border:1px solid var(--glass-border);color:white;padding:0.25rem;">
-                        ${getCategoryOptionsHtml('Geral')}
+                        ${getCategoryOptionsHtml(suggestedCategory)}
                     </select>
                 </td>
                 <td>
@@ -790,6 +803,21 @@ document.getElementById('btn-new-transaction').onclick = () => {
     document.getElementById('modal-transaction').style.display='flex';
 };
 document.getElementById('btn-cancel').onclick = () => document.getElementById('modal-transaction').style.display='none';
+
+// Auto-categorize based on description input
+document.getElementById('desc').addEventListener('blur', async (e) => {
+    const desc = e.target.value.trim();
+    if (!desc) return;
+    
+    const txs = await getTransactions();
+    const pastTx = txs.slice().reverse().find(t => t.description.toLowerCase() === desc.toLowerCase());
+    
+    if (pastTx && pastTx.category) {
+        const catSelect = document.getElementById('category');
+        if (catSelect) catSelect.value = pastTx.category;
+    }
+});
+
 document.getElementById('form-transaction').onsubmit = async (e) => {
     e.preventDefault();
     const amt = parseFloat(document.getElementById('amount').value);
