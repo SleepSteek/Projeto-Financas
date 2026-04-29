@@ -1,10 +1,76 @@
-import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, getWallets, addWallet, deleteWallet, getRules, saveRule } from './supabase.js?v=1.0.3';
+import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule } from './supabase.js?v=1.0.4';
 import { initGoogleAuth, connectGmail, fetchTransactionEmails } from './gmail.js';
 
 // State
 let allWallets = [];
 let walletMap = {};
 let learnRules = [];
+
+// =============================================
+// Categories Management System
+// =============================================
+const DEFAULT_CATEGORIES = [
+    'Geral', 'Reparos', 'Marido de Aluguel', 'Faxina',
+    'Alimentação', 'Moradia', 'Lazer', 'Transporte', 'Renda'
+];
+
+function getCustomCategories() {
+    try {
+        return JSON.parse(localStorage.getItem('custom-categories') || '[]');
+    } catch { return []; }
+}
+
+function getAllCategories() {
+    const custom = getCustomCategories();
+    // Merge defaults + custom, deduplicated, preserving order
+    const all = [...DEFAULT_CATEGORIES];
+    custom.forEach(c => { if (!all.includes(c)) all.push(c); });
+    return all;
+}
+
+function addCustomCategory(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    const custom = getCustomCategories();
+    if (DEFAULT_CATEGORIES.includes(trimmed) || custom.includes(trimmed)) return false;
+    custom.push(trimmed);
+    localStorage.setItem('custom-categories', JSON.stringify(custom));
+    return true;
+}
+
+function removeCustomCategory(name) {
+    let custom = getCustomCategories();
+    custom = custom.filter(c => c !== name);
+    localStorage.setItem('custom-categories', JSON.stringify(custom));
+}
+
+function getCategoryOptionsHtml(selected = 'Geral') {
+    return getAllCategories().map(cat =>
+        `<option value="${cat}" ${cat === selected ? 'selected' : ''}>${cat}</option>`
+    ).join('');
+}
+
+// Name Normalization Rules (old_description -> new_description)
+function getNameRules() {
+    try {
+        return JSON.parse(localStorage.getItem('name-rules') || '{}');
+    } catch { return {}; }
+}
+
+function saveNameRule(oldName, newName) {
+    const rules = getNameRules();
+    if (oldName === newName) {
+        delete rules[oldName];
+    } else {
+        rules[oldName] = newName;
+    }
+    localStorage.setItem('name-rules', JSON.stringify(rules));
+}
+
+function applyNameRules(description) {
+    const rules = getNameRules();
+    return rules[description] || description;
+}
 
 // Navigation
 const navItems = {
@@ -119,18 +185,20 @@ function renderTransactionTable(txs, elementId, showActions = false) {
         const isInc = amt > 0;
         const row = document.createElement('tr');
         const catSelectHtml = `<select class="tx-category-edit" data-id="${tx.id}" style="background:var(--surface);border:1px solid var(--glass-border);color:white;padding:0.25rem;border-radius:0.25rem;width:100%;">
-            <option value="Geral" ${tx.category === 'Geral' ? 'selected' : ''}>Geral</option>
-            <option value="Reparos" ${tx.category === 'Reparos' ? 'selected' : ''}>Reparos</option>
-            <option value="Marido de Aluguel" ${tx.category === 'Marido de Aluguel' ? 'selected' : ''}>Marido de Aluguel</option>
-            <option value="Faxina" ${tx.category === 'Faxina' ? 'selected' : ''}>Faxina</option>
-            <option value="Alimentação" ${tx.category === 'Alimentação' ? 'selected' : ''}>Alimentação</option>
-            <option value="Moradia" ${tx.category === 'Moradia' ? 'selected' : ''}>Moradia</option>
-            <option value="Lazer" ${tx.category === 'Lazer' ? 'selected' : ''}>Lazer</option>
-            <option value="Transporte" ${tx.category === 'Transporte' ? 'selected' : ''}>Transporte</option>
-            <option value="Renda" ${tx.category === 'Renda' ? 'selected' : ''}>Renda</option>
+            ${getCategoryOptionsHtml(tx.category || 'Geral')}
         </select>`;
 
-        row.innerHTML = `${showActions ? `<td><input type="checkbox" class="tx-checkbox" data-id="${tx.id}"></td>` : ''}<td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td><td>${tx.description}</td>${showActions ? `<td>${catSelectHtml}</td>` : `<td>${tx.category || 'Geral'}</td>`}<td><span style="background:var(--surface-light);padding:0.25rem 0.5rem;border-radius:0.5rem;font-size:0.75rem;">${walletMap[tx.wallet_id] || '---'}</span></td><td class="amount ${isInc?'income':'expense'}">${isInc?'+':'-'} R$ ${Math.abs(amt).toFixed(2)}</td>${showActions ? `<td><button class="btn-delete" data-id="${tx.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;"><span class="material-symbols-rounded">delete</span></button></td>` : ''}`;
+        const descriptionHtml = showActions
+            ? `<td class="td-description-editable" data-id="${tx.id}" data-original="${tx.description}">
+                <div class="desc-display" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;" title="Clique para editar">
+                    <span class="desc-text">${tx.description}</span>
+                    <span class="material-symbols-rounded desc-edit-icon" style="font-size:0.9rem;color:var(--text-muted);opacity:0;transition:opacity 0.2s;">edit</span>
+                </div>
+                <input type="text" class="desc-input" value="${tx.description}" style="display:none;width:100%;padding:0.25rem 0.5rem;background:var(--surface);border:1px solid var(--primary);color:white;border-radius:0.25rem;outline:none;font-size:0.875rem;" />
+               </td>`
+            : `<td>${tx.description}</td>`;
+
+        row.innerHTML = `${showActions ? `<td><input type="checkbox" class="tx-checkbox" data-id="${tx.id}"></td>` : ''}<td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td>${descriptionHtml}${showActions ? `<td>${catSelectHtml}</td>` : `<td>${tx.category || 'Geral'}</td>`}<td><span style="background:var(--surface-light);padding:0.25rem 0.5rem;border-radius:0.5rem;font-size:0.75rem;">${walletMap[tx.wallet_id] || '---'}</span></td><td class="amount ${isInc?'income':'expense'}">${isInc?'+':'-'} R$ ${Math.abs(amt).toFixed(2)}</td>${showActions ? `<td><button class="btn-delete" data-id="${tx.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;"><span class="material-symbols-rounded">delete</span></button></td>` : ''}`;
         list.appendChild(row);
     });
     if (showActions) {
@@ -167,13 +235,97 @@ function renderTransactionTable(txs, elementId, showActions = false) {
                 const newCategory = e.target.value;
                 const id = e.target.dataset.id;
                 await updateTransaction(id, { category: newCategory });
-                // Note: we don't reload full transactions to avoid losing filter state / scroll,
-                // but we might want to update the dashboard stats if they are visible.
-                // Since this view is only transactions, just reloading the dashboard data in background is fine:
                 loadTransactions(); 
             };
         });
+
+        // =============================================
+        // Inline Description Editing + Normalization
+        // =============================================
+        document.querySelectorAll('.td-description-editable').forEach(td => {
+            const display = td.querySelector('.desc-display');
+            const input = td.querySelector('.desc-input');
+            const textSpan = td.querySelector('.desc-text');
+            const txId = td.dataset.id;
+            const originalDesc = td.dataset.original;
+
+            // Show edit icon on hover
+            td.addEventListener('mouseenter', () => {
+                const icon = td.querySelector('.desc-edit-icon');
+                if (icon) icon.style.opacity = '1';
+            });
+            td.addEventListener('mouseleave', () => {
+                const icon = td.querySelector('.desc-edit-icon');
+                if (icon) icon.style.opacity = '0';
+            });
+
+            // Click to enter edit mode
+            display.addEventListener('click', () => {
+                display.style.display = 'none';
+                input.style.display = 'block';
+                input.focus();
+                input.select();
+            });
+
+            // Save on Enter, cancel on Escape
+            input.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    await commitDescriptionEdit(txId, originalDesc, input.value.trim(), textSpan, display, input);
+                } else if (e.key === 'Escape') {
+                    input.value = originalDesc;
+                    input.style.display = 'none';
+                    display.style.display = 'flex';
+                }
+            });
+
+            // Save on blur
+            input.addEventListener('blur', async () => {
+                // Small delay to prevent conflicts with keydown events
+                setTimeout(async () => {
+                    if (input.style.display !== 'none') {
+                        await commitDescriptionEdit(txId, originalDesc, input.value.trim(), textSpan, display, input);
+                    }
+                }, 100);
+            });
+        });
     }
+}
+
+async function commitDescriptionEdit(txId, originalDesc, newDesc, textSpan, display, input) {
+    if (!newDesc || newDesc === originalDesc) {
+        // No change, just close edit mode
+        input.style.display = 'none';
+        display.style.display = 'flex';
+        return;
+    }
+
+    // Update the current transaction
+    await updateTransaction(txId, { description: newDesc });
+    textSpan.textContent = newDesc;
+    input.style.display = 'none';
+    display.style.display = 'flex';
+
+    // Ask if user wants to normalize all matching transactions
+    const allTxs = await getTransactions();
+    const matchingCount = allTxs.filter(t => t.description === originalDesc && t.id !== parseInt(txId)).length;
+
+    if (matchingCount > 0) {
+        const normalize = confirm(
+            `Existem mais ${matchingCount} transação(ões) com o nome "${originalDesc}".\n\n` +
+            `Deseja renomear todas para "${newDesc}"?`
+        );
+        if (normalize) {
+            await updateTransactionsByDescription(originalDesc, { description: newDesc });
+        }
+    }
+
+    // Save normalization rule for future imports
+    saveNameRule(originalDesc, newDesc);
+
+    // Reload to reflect changes
+    loadFullTransactions();
+    loadTransactions();
 }
 
 function updateDashboardStats(txs) {
@@ -410,9 +562,13 @@ async function runTriage() {
             if (rule && rule.amount_type !== 'ignore') {
                 // Só adiciona automático se conseguiu extrair um valor válido (> 0)
                 if (email.amount > 0) {
+                    // Apply name normalization rules
+                    let autoDesc = email.entityName || (email.senderName ? `${email.senderName}: ${email.subject}` : email.subject);
+                    autoDesc = applyNameRules(autoDesc);
+
                     const tx = {
                         date: email.date,
-                        description: email.entityName || (email.senderName ? `${email.senderName}: ${email.subject}` : email.subject),
+                        description: autoDesc,
                         amount: rule.amount_type === 'income' ? Math.abs(email.amount) : -Math.abs(email.amount),
                         category: rule.category,
                         wallet_id: bankWallet?.id,
@@ -440,14 +596,7 @@ async function runTriage() {
                 </td>
                 <td>
                     <select class="triage-category" style="background:var(--surface);border:1px solid var(--glass-border);color:white;padding:0.25rem;">
-                        <option value="Geral">Geral</option>
-                        <option value="Reparos">Reparos</option>
-                        <option value="Marido de Aluguel">Marido de Aluguel</option>
-                        <option value="Faxina">Faxina</option>
-                        <option value="Alimentação">Alimentação</option>
-                        <option value="Transporte">Transporte</option>
-                        <option value="Lazer">Lazer</option>
-                        <option value="Renda">Renda</option>
+                        ${getCategoryOptionsHtml('Geral')}
                     </select>
                 </td>
                 <td>
@@ -486,9 +635,13 @@ async function runTriage() {
                 const sender = btn.dataset.sender;
                 const entity = btn.dataset.entity;
 
+                // Apply name normalization rules
+                let desc = entity || (sender ? `${sender}: ${subj}` : subj);
+                desc = applyNameRules(desc);
+
                 const tx = {
                     date: btn.dataset.date,
-                    description: entity || (sender ? `${sender}: ${subj}` : subj),
+                    description: desc,
                     amount: type === 'income' ? Math.abs(amt) : -Math.abs(amt),
                     category: cat,
                     wallet_id: bankWallet?.id,
@@ -557,6 +710,8 @@ document.addEventListener('gmail-disconnected', () => {
 document.addEventListener('DOMContentLoaded', async () => {
     initGoogleAuth();
     loadSettings();
+    renderCategoryManager();
+    populateModalCategories();
     await loadWallets();
     loadTransactions();
 });
@@ -603,7 +758,10 @@ if (formSettings) {
 }
 
 // Modal Logic
-document.getElementById('btn-new-transaction').onclick = () => document.getElementById('modal-transaction').style.display='flex';
+document.getElementById('btn-new-transaction').onclick = () => {
+    populateModalCategories();
+    document.getElementById('modal-transaction').style.display='flex';
+};
 document.getElementById('btn-cancel').onclick = () => document.getElementById('modal-transaction').style.display='none';
 document.getElementById('form-transaction').onsubmit = async (e) => {
     e.preventDefault();
@@ -620,3 +778,89 @@ document.getElementById('form-transaction').onsubmit = async (e) => {
     };
     if (await addTransaction(tx)) { document.getElementById('modal-transaction').style.display='none'; loadTransactions(); }
 };
+
+// =============================================
+// Dynamic Category Dropdown Population
+// =============================================
+function populateModalCategories() {
+    const select = document.getElementById('category');
+    if (select) {
+        const current = select.value;
+        select.innerHTML = getCategoryOptionsHtml(current || 'Geral');
+    }
+}
+
+// =============================================
+// Category Manager UI (Settings section)
+// =============================================
+function renderCategoryManager() {
+    const container = document.getElementById('category-manager');
+    if (!container) return;
+
+    const allCats = getAllCategories();
+    const customCats = getCustomCategories();
+
+    container.innerHTML = `
+        <div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;">
+            <input type="text" id="new-category-input" placeholder="Nome da nova categoria"
+                style="flex:1;padding:0.75rem;border-radius:0.5rem;border:1px solid var(--glass-border);background:var(--surface);color:white;" />
+            <button type="button" class="btn btn-primary" id="btn-add-category" style="padding:0.5rem 1rem;white-space:nowrap;">
+                <span class="material-symbols-rounded">add</span> Adicionar
+            </button>
+        </div>
+        <div class="category-chips" style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+            ${allCats.map(cat => {
+                const isCustom = customCats.includes(cat);
+                return `<span class="category-chip ${isCustom ? 'custom' : 'default'}" style="
+                    display:inline-flex;align-items:center;gap:0.4rem;
+                    padding:0.4rem 0.75rem;border-radius:2rem;
+                    background:${isCustom ? 'var(--primary)' : 'var(--surface-light)'};
+                    color:white;font-size:0.8rem;font-weight:500;
+                    transition:all 0.2s ease;
+                ">
+                    ${cat}
+                    ${isCustom ? `<button class="btn-remove-cat" data-cat="${cat}" style="
+                        background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;
+                        display:flex;align-items:center;padding:0;margin:0;
+                        font-size:0.85rem;line-height:1;
+                    " title="Remover categoria">&times;</button>` : ''}
+                </span>`;
+            }).join('')}
+        </div>
+    `;
+
+    // Add category event
+    document.getElementById('btn-add-category').onclick = () => {
+        const input = document.getElementById('new-category-input');
+        const name = input.value.trim();
+        if (!name) return;
+        if (addCustomCategory(name)) {
+            renderCategoryManager();
+            populateModalCategories();
+            input.value = '';
+        } else {
+            alert('Categoria já existe ou nome inválido.');
+        }
+    };
+
+    // Enter key support
+    document.getElementById('new-category-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('btn-add-category').click();
+        }
+    });
+
+    // Remove category events
+    document.querySelectorAll('.btn-remove-cat').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const cat = btn.dataset.cat;
+            if (confirm(`Remover a categoria "${cat}"?\n\nTransações existentes com essa categoria não serão afetadas.`)) {
+                removeCustomCategory(cat);
+                renderCategoryManager();
+                populateModalCategories();
+            }
+        };
+    });
+}

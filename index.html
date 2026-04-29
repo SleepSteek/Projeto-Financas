@@ -303,6 +303,16 @@
                                 style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
                         </div>
 
+                        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
+
+                        <h3 style="margin-bottom: 1rem;">Categorias de Gastos e Receitas</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Gerencie suas categorias personalizadas. Categorias padrão não podem ser removidas.</p>
+                        <div id="category-manager">
+                            <!-- Populated by JS -->
+                        </div>
+
+                        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
+
                         <button type="submit" class="btn btn-primary"
                             style="width: 100%; justify-content: center; padding: 1rem;">
                             <span class="material-symbols-rounded">save</span> Salvar Alterações
@@ -348,15 +358,8 @@
                     <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Categoria</label>
                     <select id="category"
                         style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        <!-- Options populated dynamically by JS -->
                         <option value="Geral">Geral</option>
-                        <option value="Reparos">Reparos</option>
-                        <option value="Marido de Aluguel">Marido de Aluguel</option>
-                        <option value="Faxina">Faxina</option>
-                        <option value="Alimentação">Alimentação</option>
-                        <option value="Moradia">Moradia</option>
-                        <option value="Lazer">Lazer</option>
-                        <option value="Transporte">Transporte</option>
-                        <option value="Renda">Renda</option>
                     </select>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
@@ -369,7 +372,7 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=1.0.3"></script>
+    <script type="module" src="js/app.js?v=1.0.4"></script>
 </body>
 
 </html>

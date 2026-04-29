@@ -190,3 +190,20 @@ export async function saveRule(rule) {
         return null;
     }
 }
+
+/**
+ * Bulk update transactions matching a specific description
+ */
+export async function updateTransactionsByDescription(oldDescription, updates) {
+    if (!supabase) return false;
+    try {
+        const { error } = await supabase
+            .from('transactions')
+            .update(updates)
+            .eq('description', oldDescription);
+        return !error;
+    } catch (error) {
+        console.error('Error bulk updating transactions:', error);
+        return false;
+    }
+}

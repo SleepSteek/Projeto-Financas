@@ -193,6 +193,35 @@ td {
     animation: fadeIn 0.5s ease forwards;
 }
 
+/* Editable Description */
+.td-description-editable:hover .desc-edit-icon {
+    opacity: 1 !important;
+}
+
+.desc-display:hover .desc-text {
+    color: var(--primary);
+    transition: color 0.2s ease;
+}
+
+.desc-input:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+/* Category Chips */
+.category-chip {
+    user-select: none;
+}
+
+.category-chip.custom:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+}
+
+.category-chip .btn-remove-cat:hover {
+    color: white !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
