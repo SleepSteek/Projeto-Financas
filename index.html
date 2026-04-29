@@ -71,8 +71,8 @@
                 </div>
                 <div id="auth-status" class="card" style="margin-bottom: 0; padding: 0.5rem 1rem; border-radius: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span class="material-symbols-rounded" style="color: var(--success);">check_circle</span>
-                        <span style="font-size: 0.875rem;">Conectado</span>
+                        <span id="auth-status-icon" class="material-symbols-rounded" style="color: var(--danger);">cancel</span>
+                        <span id="auth-status-text" style="font-size: 0.875rem;">Desconectado</span>
                     </div>
                 </div>
             </header>
@@ -218,13 +218,14 @@
                                 <option value="30d" selected>Último Mês</option>
                             </select>
                         </div>
-                        <button class="btn btn-primary" id="btn-connect-gmail" style="width: 100%;">
-                            <span class="material-symbols-rounded">login</span> Conectar & Buscar
-                        </button>
-                        <button class="btn" id="btn-sync-now"
-                            style="display: none; width: 100%; margin-top: 1rem; border: 1px solid var(--primary); color: var(--primary);">
-                            <span class="material-symbols-rounded">sync</span> Buscar E-mails
-                        </button>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn" id="btn-connect-gmail" style="flex: 1; border: 1px solid var(--primary); color: var(--primary);">
+                                <span class="material-symbols-rounded">login</span> Conectar Gmail
+                            </button>
+                            <button class="btn btn-primary" id="btn-sync-now" style="flex: 1;">
+                                <span class="material-symbols-rounded">sync</span> Atualizar Transações
+                            </button>
+                        </div>
                     </div>
 
                     <div class="card" style="display: flex; flex-direction: column; justify-content: center;">

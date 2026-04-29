@@ -13,6 +13,20 @@ const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 let tokenClient;
 let accessToken = null;
 
+export function isGmailTokenValid() {
+    const savedToken = localStorage.getItem('gmail_access_token');
+    const savedExpiry = localStorage.getItem('gmail_token_expiry');
+    if (savedToken && savedExpiry && Date.now() < parseInt(savedExpiry)) {
+        accessToken = savedToken;
+        return true;
+    }
+    return false;
+}
+
+export function isGmailLinked() {
+    return localStorage.getItem('gmail_linked') === 'true';
+}
+
 /**
  * Initialize Google Identity Services
  */
@@ -37,20 +51,20 @@ export function initGoogleAuth() {
                 const expiryTime = Date.now() + (tokenResponse.expires_in * 1000);
                 localStorage.setItem('gmail_access_token', accessToken);
                 localStorage.setItem('gmail_token_expiry', expiryTime);
+                localStorage.setItem('gmail_linked', 'true');
 
                 console.log('Access token acquired and persisted');
                 document.dispatchEvent(new CustomEvent('gmail-connected'));
             },
         });
 
-        // Tenta carregar token persistido
-        const savedToken = localStorage.getItem('gmail_access_token');
-        const savedExpiry = localStorage.getItem('gmail_token_expiry');
-
-        if (savedToken && savedExpiry && Date.now() < parseInt(savedExpiry)) {
-            accessToken = savedToken;
+        if (isGmailTokenValid()) {
             console.log('Valid persisted token found');
-            // Aguarda um pequeno delay para garantir que o app.js carregou seus listeners
+            setTimeout(() => {
+                document.dispatchEvent(new CustomEvent('gmail-connected'));
+            }, 100);
+        } else if (isGmailLinked()) {
+            console.log('Gmail is linked, but token expired. UI will show connected.');
             setTimeout(() => {
                 document.dispatchEvent(new CustomEvent('gmail-connected'));
             }, 100);
@@ -65,14 +79,35 @@ export function initGoogleAuth() {
 /**
  * Handle Gmail Connection (Trigger Popup)
  */
-export async function connectGmail() {
-    if (accessToken === null) {
-        // Prompt the user to select a Google Account and ask for consent to share their data
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else {
-        // Skip display of account chooser and consent dialog for an existing session
-        tokenClient.requestAccessToken({ prompt: '' });
-    }
+export function connectGmail(promptConsent = false) {
+    return new Promise((resolve, reject) => {
+        if (!tokenClient) {
+            reject('Google Auth not initialized');
+            return;
+        }
+
+        tokenClient.callback = (tokenResponse) => {
+            if (tokenResponse.error !== undefined) {
+                reject(tokenResponse);
+                return;
+            }
+            accessToken = tokenResponse.access_token;
+            const expiryTime = Date.now() + (tokenResponse.expires_in * 1000);
+            localStorage.setItem('gmail_access_token', accessToken);
+            localStorage.setItem('gmail_token_expiry', expiryTime);
+            localStorage.setItem('gmail_linked', 'true');
+
+            console.log('Access token acquired via promise');
+            document.dispatchEvent(new CustomEvent('gmail-connected'));
+            resolve(accessToken);
+        };
+
+        if (promptConsent) {
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        } else {
+            tokenClient.requestAccessToken({ prompt: '' });
+        }
+    });
 }
 
 /**
@@ -95,7 +130,7 @@ export async function fetchTransactionEmails(config = {}) {
             accessToken = null;
             localStorage.removeItem('gmail_access_token');
             localStorage.removeItem('gmail_token_expiry');
-            document.dispatchEvent(new CustomEvent('gmail-disconnected'));
+            // Não removemos gmail_linked para permitir reconexão silenciosa
             return [];
         }
 
@@ -111,7 +146,7 @@ export async function fetchTransactionEmails(config = {}) {
             if (detailResponse.status === 401) {
                 accessToken = null;
                 localStorage.removeItem('gmail_access_token');
-                document.dispatchEvent(new CustomEvent('gmail-disconnected'));
+                localStorage.removeItem('gmail_token_expiry');
                 return [];
             }
 

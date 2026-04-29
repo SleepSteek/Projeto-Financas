@@ -1,5 +1,5 @@
 import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule } from './supabase.js?v=1.0.4';
-import { initGoogleAuth, connectGmail, fetchTransactionEmails } from './gmail.js';
+import { initGoogleAuth, connectGmail, fetchTransactionEmails, isGmailTokenValid } from './gmail.js';
 
 // State
 let allWallets = [];
@@ -674,8 +674,25 @@ const btnSyncNow = document.getElementById('btn-sync-now');
 const btnConnectGmail = document.getElementById('btn-connect-gmail');
 const btnDeleteSelected = document.getElementById('btn-delete-selected');
 
-btnConnectGmail.onclick = () => connectGmail();
-btnSyncNow.onclick = () => runTriage();
+btnConnectGmail.onclick = async () => {
+    try {
+        await connectGmail(true);
+    } catch (e) {
+        console.error('Falha ou cancelamento ao conectar Gmail:', e);
+    }
+};
+
+btnSyncNow.onclick = async () => {
+    if (!isGmailTokenValid()) {
+        try {
+            await connectGmail(false); // Silent reconnect
+        } catch (e) {
+            alert('A sessão com o Gmail expirou. Por favor, clique em "Conectar Gmail".');
+            return;
+        }
+    }
+    runTriage();
+};
 
 if (btnDeleteSelected) {
     btnDeleteSelected.onclick = async () => {
@@ -694,17 +711,27 @@ if (btnDeleteSelected) {
 }
 
 document.addEventListener('gmail-connected', () => {
-    btnConnectGmail.style.display = 'none';
-    btnSyncNow.style.display = 'block';
-    // Só roda a triagem automaticamente se estivermos na view de sync
-    if (views.sync.style.display === 'block') {
-        runTriage();
+    const icon = document.getElementById('auth-status-icon');
+    const text = document.getElementById('auth-status-text');
+    if (icon) {
+        icon.textContent = 'check_circle';
+        icon.style.color = 'var(--success)';
+    }
+    if (text) {
+        text.textContent = 'Conectado';
     }
 });
 
 document.addEventListener('gmail-disconnected', () => {
-    btnConnectGmail.style.display = 'block';
-    btnSyncNow.style.display = 'none';
+    const icon = document.getElementById('auth-status-icon');
+    const text = document.getElementById('auth-status-text');
+    if (icon) {
+        icon.textContent = 'cancel';
+        icon.style.color = 'var(--danger)';
+    }
+    if (text) {
+        text.textContent = 'Desconectado';
+    }
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
