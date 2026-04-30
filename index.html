@@ -44,6 +44,10 @@
                     <span class="material-symbols-rounded">account_balance_wallet</span>
                     <span class="nav-text">Carteiras</span>
                 </a>
+                <a href="#" class="nav-item" id="nav-recurring">
+                    <span class="material-symbols-rounded">event_repeat</span>
+                    <span class="nav-text">Recorrentes</span>
+                </a>
                 <a href="#" class="nav-item" id="nav-sync">
                     <span class="material-symbols-rounded">sync</span>
                     <span class="nav-text">Sincronizar E-mail</span>
@@ -321,6 +325,35 @@
                     </form>
                 </div>
             </section>
+            <!-- View Gastos Recorrentes -->
+            <section id="view-recurring" style="display: none;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2>Gastos Recorrentes</h2>
+                        <button class="btn btn-primary" id="btn-add-recurring">
+                            <span class="material-symbols-rounded">add</span> Novo Gasto Recorrente
+                        </button>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Gerencie suas contas fixas e assinaturas. Vincule transações para acompanhar quais já foram pagas no mês atual.</p>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Status (Mês)</th>
+                                    <th>Descrição</th>
+                                    <th>Vencimento</th>
+                                    <th>Valor</th>
+                                    <th>Categoria</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recurring-expenses-list">
+                                <!-- Gastos recorrentes carregados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -371,6 +404,64 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal Novo Gasto Recorrente -->
+    <div id="modal-recurring" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card animate-fade-in" style="width: 400px; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;" id="modal-recurring-title">Novo Gasto Recorrente</h3>
+            <form id="form-recurring">
+                <input type="hidden" id="recurring-id">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Descrição</label>
+                    <input type="text" id="recurring-desc" required placeholder="Ex: Conta de Luz"
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Valor Estimado (R$)</label>
+                    <input type="number" step="0.01" id="recurring-amount" required
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Dia do Vencimento</label>
+                    <input type="number" min="1" max="31" id="recurring-due-day" required placeholder="Ex: 15"
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Categoria</label>
+                    <select id="recurring-category"
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                        <!-- Options populated dynamically by JS -->
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" class="btn" style="flex: 1; background: var(--surface-light);"
+                        id="btn-cancel-recurring">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Vincular Transação -->
+    <div id="modal-link-transaction" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card animate-fade-in" style="width: 500px; padding: 2rem; max-height: 80vh; overflow-y: auto;">
+            <h3 style="margin-bottom: 1rem;">Vincular Pagamento</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Selecione a transação deste mês que corresponde ao pagamento de <b id="link-transaction-desc" style="color: var(--text);"></b>. O sistema aprenderá a identificar essa conta no futuro.</p>
+            <input type="hidden" id="link-recurring-id">
+            
+            <div id="unlinked-transactions-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Transações carregadas aqui -->
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="button" class="btn" style="flex: 1; background: var(--surface-light);"
+                    id="btn-cancel-link">Cancelar</button>
+                <button type="button" class="btn btn-danger" style="flex: 1;"
+                    id="btn-mark-unpaid">Marcar como Não Pago</button>
+            </div>
+        </div>
 
     <!-- Scripts -->
     <script type="module" src="js/app.js?v=1.0.4"></script>

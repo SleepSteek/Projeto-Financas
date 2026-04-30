@@ -1,4 +1,4 @@
-import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule } from './supabase.js?v=1.0.4';
+import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule, getRecurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense } from './supabase.js?v=1.0.4';
 import { initGoogleAuth, connectGmail, fetchTransactionEmails, isGmailTokenValid } from './gmail.js';
 
 // State
@@ -77,6 +77,7 @@ const navItems = {
     'dashboard': document.getElementById('nav-dashboard'),
     'transactions': document.getElementById('nav-transactions'),
     'wallets': document.getElementById('nav-wallets'),
+    'recurring': document.getElementById('nav-recurring'),
     'sync': document.getElementById('nav-sync'),
     'settings': document.getElementById('nav-settings')
 };
@@ -84,6 +85,7 @@ const views = {
     'dashboard': document.getElementById('view-dashboard'),
     'transactions': document.getElementById('view-transactions'),
     'wallets': document.getElementById('view-wallets'),
+    'recurring': document.getElementById('view-recurring'),
     'sync': document.getElementById('view-sync'),
     'settings': document.getElementById('view-settings')
 };
@@ -96,6 +98,7 @@ function showView(viewName) {
     if (viewName === 'dashboard') loadTransactions();
     if (viewName === 'transactions') loadFullTransactions();
     if (viewName === 'wallets') loadWallets();
+    if (viewName === 'recurring') loadRecurringExpenses();
     if (viewName === 'settings') loadSettings();
 }
 
@@ -919,3 +922,200 @@ function renderCategoryManager() {
         };
     });
 }
+
+// =============================================
+// Recurring Expenses Logic
+// =============================================
+async function loadRecurringExpenses() {
+    const list = document.getElementById('recurring-expenses-list');
+    if (!list) return;
+
+    list.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
+
+    const expenses = await getRecurringExpenses();
+    const txs = await getTransactions();
+    
+    // Obter transações do mês atual (saídas)
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    const currentMonthExpenses = txs.filter(tx => {
+        const txDate = new Date(tx.date + 'T12:00:00');
+        const amt = parseFloat(tx.amount);
+        return txDate.getMonth() === currentMonth && 
+               txDate.getFullYear() === currentYear && 
+               amt <= 0;
+    });
+
+    list.innerHTML = '';
+    
+    if (expenses.length === 0) {
+        list.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhum gasto recorrente cadastrado.</td></tr>';
+        return;
+    }
+
+    expenses.forEach(exp => {
+        const row = document.createElement('tr');
+        
+        // Verificar se foi pago no mês atual
+        const matchedDescriptions = exp.matched_descriptions || [];
+        const isPaid = currentMonthExpenses.some(tx => matchedDescriptions.includes(tx.description));
+        
+        // Verificar atraso
+        const isLate = !isPaid && today.getDate() > exp.due_day;
+        
+        let statusHtml = '';
+        if (isPaid) {
+            statusHtml = `<span style="color:var(--success); display:flex; align-items:center; gap:0.25rem;"><span class="material-symbols-rounded" style="font-size:1rem;">check_circle</span> Pago</span>`;
+        } else if (isLate) {
+            statusHtml = `<button class="btn-link-tx" data-id="${exp.id}" data-desc="${exp.description}" style="background:var(--danger-light);color:var(--danger);border:1px solid var(--danger);padding:0.25rem 0.5rem;border-radius:0.25rem;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;gap:0.25rem;"><span class="material-symbols-rounded" style="font-size:1rem;">warning</span> Atrasado (Vincular)</button>`;
+        } else {
+            statusHtml = `<button class="btn-link-tx" data-id="${exp.id}" data-desc="${exp.description}" style="background:none;color:var(--text-muted);border:1px dashed var(--glass-border);padding:0.25rem 0.5rem;border-radius:0.25rem;cursor:pointer;font-size:0.75rem;">Aguardando Pagamento...</button>`;
+        }
+
+        row.innerHTML = `
+            <td>${statusHtml}</td>
+            <td style="font-weight:500;">${exp.description}</td>
+            <td>Dia ${exp.due_day}</td>
+            <td class="amount expense">R$ ${parseFloat(exp.amount).toFixed(2)}</td>
+            <td>${exp.category || 'Geral'}</td>
+            <td>
+                <button class="btn-edit-recurring" data-id="${exp.id}" style="background:none;border:none;color:var(--primary);cursor:pointer;margin-right:0.5rem;"><span class="material-symbols-rounded">edit</span></button>
+                <button class="btn-del-recurring" data-id="${exp.id}" style="background:none;border:none;color:var(--danger);cursor:pointer;"><span class="material-symbols-rounded">delete</span></button>
+            </td>
+        `;
+        list.appendChild(row);
+    });
+
+    // Event Listeners for actions
+    document.querySelectorAll('.btn-del-recurring').forEach(btn => {
+        btn.onclick = async () => {
+            if (confirm('Excluir este gasto recorrente?')) {
+                await deleteRecurringExpense(btn.dataset.id);
+                loadRecurringExpenses();
+            }
+        };
+    });
+
+    document.querySelectorAll('.btn-edit-recurring').forEach(btn => {
+        btn.onclick = async () => {
+            const exp = expenses.find(e => e.id == btn.dataset.id);
+            if (exp) {
+                document.getElementById('modal-recurring-title').innerText = 'Editar Gasto Recorrente';
+                document.getElementById('recurring-id').value = exp.id;
+                document.getElementById('recurring-desc').value = exp.description;
+                document.getElementById('recurring-amount').value = Math.abs(parseFloat(exp.amount));
+                document.getElementById('recurring-due-day').value = exp.due_day;
+                
+                const catSelect = document.getElementById('recurring-category');
+                catSelect.innerHTML = getCategoryOptionsHtml(exp.category);
+                
+                document.getElementById('modal-recurring').style.display = 'flex';
+            }
+        };
+    });
+
+    document.querySelectorAll('.btn-link-tx').forEach(btn => {
+        btn.onclick = () => openLinkModal(btn.dataset.id, btn.dataset.desc, currentMonthExpenses);
+    });
+}
+
+// Modal Novo Gasto Recorrente
+const btnAddRecurring = document.getElementById('btn-add-recurring');
+if (btnAddRecurring) {
+    btnAddRecurring.onclick = () => {
+        document.getElementById('modal-recurring-title').innerText = 'Novo Gasto Recorrente';
+        document.getElementById('recurring-id').value = '';
+        document.getElementById('form-recurring').reset();
+        
+        const catSelect = document.getElementById('recurring-category');
+        catSelect.innerHTML = getCategoryOptionsHtml('Geral');
+        
+        document.getElementById('modal-recurring').style.display = 'flex';
+    };
+}
+
+document.getElementById('btn-cancel-recurring').onclick = () => {
+    document.getElementById('modal-recurring').style.display = 'none';
+};
+
+document.getElementById('form-recurring').onsubmit = async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('recurring-id').value;
+    const desc = document.getElementById('recurring-desc').value.trim();
+    const amount = parseFloat(document.getElementById('recurring-amount').value);
+    const dueDay = parseInt(document.getElementById('recurring-due-day').value);
+    const category = document.getElementById('recurring-category').value;
+
+    const payload = {
+        description: desc,
+        amount: amount,
+        due_day: dueDay,
+        category: category
+    };
+
+    if (id) {
+        await updateRecurringExpense(id, payload);
+    } else {
+        await addRecurringExpense(payload);
+    }
+
+    document.getElementById('modal-recurring').style.display = 'none';
+    loadRecurringExpenses();
+};
+
+// Modal Link Transaction
+function openLinkModal(recurringId, recurringDesc, currentMonthExpenses) {
+    document.getElementById('link-transaction-desc').innerText = recurringDesc;
+    document.getElementById('link-recurring-id').value = recurringId;
+    
+    const list = document.getElementById('unlinked-transactions-list');
+    list.innerHTML = '';
+    
+    if (currentMonthExpenses.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">Não há transações de saída neste mês.</p>';
+    } else {
+        currentMonthExpenses.forEach(tx => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:0.75rem; background:var(--surface-light); border-radius:0.5rem; margin-bottom:0.5rem; cursor:pointer;';
+            row.innerHTML = `
+                <div>
+                    <div style="font-weight:500;">${tx.description}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(tx.date).toLocaleDateString('pt-BR')}</div>
+                </div>
+                <div style="font-weight:bold; color:var(--danger);">R$ ${Math.abs(parseFloat(tx.amount)).toFixed(2)}</div>
+            `;
+            // Hover effect
+            row.onmouseover = () => row.style.border = '1px solid var(--primary)';
+            row.onmouseout = () => row.style.border = 'none';
+            
+            row.onclick = async () => {
+                if (confirm(`Vincular o pagamento "${tx.description}" a este gasto recorrente?\n\nO sistema aprenderá para os próximos meses.`)) {
+                    const exp = (await getRecurringExpenses()).find(e => e.id == recurringId);
+                    if (exp) {
+                        const matched = exp.matched_descriptions || [];
+                        if (!matched.includes(tx.description)) {
+                            matched.push(tx.description);
+                            await updateRecurringExpense(recurringId, { matched_descriptions: matched });
+                            document.getElementById('modal-link-transaction').style.display = 'none';
+                            loadRecurringExpenses();
+                        }
+                    }
+                }
+            };
+            
+            list.appendChild(row);
+        });
+    }
+    
+    document.getElementById('modal-link-transaction').style.display = 'flex';
+}
+
+document.getElementById('btn-cancel-link').onclick = () => {
+    document.getElementById('modal-link-transaction').style.display = 'none';
+};
+
+document.getElementById('btn-mark-unpaid').onclick = async () => {
+    document.getElementById('modal-link-transaction').style.display = 'none';
+};

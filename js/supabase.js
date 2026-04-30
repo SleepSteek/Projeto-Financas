@@ -207,3 +207,70 @@ export async function updateTransactionsByDescription(oldDescription, updates) {
         return false;
     }
 }
+
+/**
+ * Recurring Expenses Logic
+ */
+export async function getRecurringExpenses() {
+    if (!supabase) return [];
+    try {
+        const { data, error } = await supabase
+            .from('recurring_expenses')
+            .select('*')
+            .order('due_day', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching recurring expenses:', error);
+        return [];
+    }
+}
+
+export async function addRecurringExpense(expense) {
+    if (!supabase) return null;
+    try {
+        const { data, error } = await supabase
+            .from('recurring_expenses')
+            .insert([expense])
+            .select();
+
+        if (error) throw error;
+        return data ? data[0] : null;
+    } catch (error) {
+        console.error('Error adding recurring expense:', error);
+        return null;
+    }
+}
+
+export async function updateRecurringExpense(id, updates) {
+    if (!supabase) return null;
+    try {
+        const { data, error } = await supabase
+            .from('recurring_expenses')
+            .update(updates)
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+        return data ? data[0] : null;
+    } catch (error) {
+        console.error('Error updating recurring expense:', error);
+        return null;
+    }
+}
+
+export async function deleteRecurringExpense(id) {
+    if (!supabase) return false;
+    try {
+        const { error } = await supabase
+            .from('recurring_expenses')
+            .delete()
+            .eq('id', id);
+        return !error;
+    } catch (error) {
+        console.error('Error deleting recurring expense:', error);
+        return false;
+    }
+}
+
