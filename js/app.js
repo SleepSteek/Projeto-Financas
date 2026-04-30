@@ -6,6 +6,16 @@ let allWallets = [];
 let walletMap = {};
 let learnRules = [];
 
+function getSelectedMonthYear() {
+    const filter = document.getElementById('global-month-filter');
+    if (filter && filter.value) {
+        const [y, m] = filter.value.split('-');
+        return { month: parseInt(m) - 1, year: parseInt(y) };
+    }
+    const d = new Date();
+    return { month: d.getMonth(), year: d.getFullYear() };
+}
+
 // =============================================
 // Categories Management System
 // =============================================
@@ -338,8 +348,7 @@ function updateDashboardStats(txs) {
     const walletMonthInc = {};
     const walletMonthExp = {};
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    const { month: currentMonth, year: currentYear } = getSelectedMonthYear();
 
     txs.forEach(tx => {
         const amt = parseFloat(tx.amount);
@@ -414,15 +423,18 @@ function updateCharts(catTotals, txs) {
 
     // --- Lógica do Gráfico de Fluxo de Caixa (Mensal acumulado por Carteira) ---
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    const { month: currentMonth, year: currentYear } = getSelectedMonthYear();
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
     
     // Ordenar transações por data (ascendente)
     const sortedTxs = [...txs].sort((a, b) => new Date(a.date) - new Date(b.date));
     
+    const daysInMonth = (currentMonth === today.getMonth() && currentYear === today.getFullYear()) 
+        ? today.getDate() 
+        : new Date(currentYear, currentMonth + 1, 0).getDate();
+
     const labels = [];
-    for (let day = 1; day <= today.getDate(); day++) {
+    for (let day = 1; day <= daysInMonth; day++) {
         labels.push(`${day}/${currentMonth + 1}`);
     }
 
@@ -435,7 +447,7 @@ function updateCharts(catTotals, txs) {
         const preMonthTxs = sortedTxs.filter(tx => tx.wallet_id === wallet.id && new Date(tx.date) < firstDayOfMonth);
         runningBalance = preMonthTxs.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
         
-        for (let day = 1; day <= today.getDate(); day++) {
+        for (let day = 1; day <= daysInMonth; day++) {
             const dayTxs = sortedTxs.filter(tx => {
                 const txDate = new Date(tx.date + 'T12:00:00');
                 return tx.wallet_id === wallet.id && 
@@ -751,6 +763,19 @@ document.addEventListener('gmail-disconnected', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const filter = document.getElementById('global-month-filter');
+    if (filter) {
+        const d = new Date();
+        filter.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        filter.addEventListener('change', () => {
+            loadTransactions();
+            loadFullTransactions();
+            if (document.getElementById('view-recurring')?.style.display === 'block') {
+                loadRecurringExpenses();
+            }
+        });
+    }
+
     initGoogleAuth();
     loadSettings();
     renderCategoryManager();
@@ -937,8 +962,7 @@ async function loadRecurringExpenses() {
     
     // Obter transações do mês atual (saídas)
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    const { month: currentMonth, year: currentYear } = getSelectedMonthYear();
     
     const currentMonthExpenses = txs.filter(tx => {
         const txDate = new Date(tx.date + 'T12:00:00');
@@ -963,7 +987,9 @@ async function loadRecurringExpenses() {
         const isPaid = currentMonthExpenses.some(tx => matchedDescriptions.includes(tx.description));
         
         // Verificar atraso
-        const isLate = !isPaid && today.getDate() > exp.due_day;
+        const isPastMonth = (currentYear < today.getFullYear()) || (currentYear === today.getFullYear() && currentMonth < today.getMonth());
+        const isCurrentMonth = currentYear === today.getFullYear() && currentMonth === today.getMonth();
+        const isLate = !isPaid && (isPastMonth || (isCurrentMonth && today.getDate() > exp.due_day));
         
         let statusHtml = '';
         if (isPaid) {

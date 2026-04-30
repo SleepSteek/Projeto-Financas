@@ -73,10 +73,16 @@
                     <h1 class="animate-fade-in">Olá, <span id="user-display-name">Vini</span>!</h1>
                     <p style="color: var(--text-muted);">Aqui está o resumo da sua saúde financeira.</p>
                 </div>
-                <div id="auth-status" class="card" style="margin-bottom: 0; padding: 0.5rem 1rem; border-radius: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span id="auth-status-icon" class="material-symbols-rounded" style="color: var(--danger);">cancel</span>
-                        <span id="auth-status-text" style="font-size: 0.875rem;">Desconectado</span>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="card" style="margin-bottom: 0; padding: 0.5rem 1rem; border-radius: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="material-symbols-rounded" style="color: var(--primary); font-size: 1.2rem;">calendar_month</span>
+                        <input type="month" id="global-month-filter" style="background: transparent; border: none; color: white; font-size: 0.875rem; font-family: inherit; outline: none; cursor: pointer; padding: 0;">
+                    </div>
+                    <div id="auth-status" class="card" style="margin-bottom: 0; padding: 0.5rem 1rem; border-radius: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span id="auth-status-icon" class="material-symbols-rounded" style="color: var(--danger);">cancel</span>
+                            <span id="auth-status-text" style="font-size: 0.875rem;">Desconectado</span>
+                        </div>
                     </div>
                 </div>
             </header>
