@@ -1,4 +1,4 @@
-import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule, getRecurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense, signUp, signIn, signOut, getSession } from './supabase.js?v=1.0.4';
+import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule, getRecurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense, signUp, signIn, signOut, getSession } from './supabase.js?v=1.0.5';
 import { initGoogleAuth, connectGmail, fetchTransactionEmails, isGmailTokenValid } from './gmail.js';
 
 // State
