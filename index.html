@@ -21,7 +21,38 @@
 </head>
 
 <body>
-    <div class="app-container">
+    <!-- Auth View -->
+    <div id="auth-view" style="display: flex; height: 100vh; align-items: center; justify-content: center; background: var(--background);">
+        <div class="card animate-fade-in" style="width: 400px; padding: 2rem; text-align: center;">
+            <div class="logo" style="margin-bottom: 2rem; display: flex; justify-content: center;">
+                <h2 style="color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="material-symbols-rounded" style="font-size: 2rem;">payments</span>
+                    <span>FinTrack</span>
+                </h2>
+            </div>
+            <h3 style="margin-bottom: 1.5rem;" id="auth-title">Acessar Conta</h3>
+            <form id="form-auth">
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">E-mail</label>
+                    <input type="email" id="auth-email" required placeholder="seu@email.com"
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                </div>
+                <div style="margin-bottom: 1.5rem; text-align: left;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Senha</label>
+                    <input type="password" id="auth-password" required placeholder="Sua senha"
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: var(--surface); color: white;">
+                </div>
+                <div id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 1rem; display: none;">Erro ao autenticar</div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; margin-bottom: 1rem;" id="btn-auth-submit">Entrar</button>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    <span id="auth-toggle-text">Não tem uma conta?</span>
+                    <a href="#" id="auth-toggle-link" style="color: var(--primary); text-decoration: none; margin-left: 0.25rem;">Cadastre-se</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" style="display: none;">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo" style="margin-bottom: 3rem; padding-left: 1rem;">
@@ -58,10 +89,14 @@
                 </a>
             </nav>
 
-            <div style="margin-top: auto; padding: 1rem;">
+            <div style="margin-top: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
                 <button class="btn btn-primary" style="width: 100%; justify-content: center;" id="btn-new-transaction">
                     <span class="material-symbols-rounded">add</span>
                     <span class="nav-text">Novo</span>
+                </button>
+                <button class="btn" style="width: 100%; justify-content: center; color: var(--danger); border: 1px solid var(--glass-border);" id="btn-logout">
+                    <span class="material-symbols-rounded">logout</span>
+                    <span class="nav-text">Sair</span>
                 </button>
             </div>
         </aside>

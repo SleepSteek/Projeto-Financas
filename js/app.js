@@ -1,4 +1,4 @@
-import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule, getRecurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense } from './supabase.js?v=1.0.4';
+import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule, getRecurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense, signUp, signIn, signOut, getSession } from './supabase.js?v=1.0.4';
 import { initGoogleAuth, connectGmail, fetchTransactionEmails, isGmailTokenValid } from './gmail.js';
 
 // State
@@ -762,6 +762,95 @@ document.addEventListener('gmail-disconnected', () => {
     }
 });
 
+// Auth UI Logic
+let isRegistering = false;
+const authToggleLink = document.getElementById('auth-toggle-link');
+const authToggleText = document.getElementById('auth-toggle-text');
+const btnAuthSubmit = document.getElementById('btn-auth-submit');
+const authTitle = document.getElementById('auth-title');
+const authError = document.getElementById('auth-error');
+
+if (authToggleLink) {
+    authToggleLink.onclick = (e) => {
+        e.preventDefault();
+        isRegistering = !isRegistering;
+        authError.style.display = 'none';
+        if (isRegistering) {
+            authTitle.innerText = 'Criar Conta';
+            btnAuthSubmit.innerText = 'Cadastrar';
+            authToggleText.innerText = 'Já tem uma conta?';
+            authToggleLink.innerText = 'Entrar';
+        } else {
+            authTitle.innerText = 'Acessar Conta';
+            btnAuthSubmit.innerText = 'Entrar';
+            authToggleText.innerText = 'Não tem uma conta?';
+            authToggleLink.innerText = 'Cadastre-se';
+        }
+    };
+}
+
+const formAuth = document.getElementById('form-auth');
+if (formAuth) {
+    formAuth.onsubmit = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        authError.style.display = 'none';
+        btnAuthSubmit.disabled = true;
+        btnAuthSubmit.innerText = 'Aguarde...';
+
+        let res;
+        if (isRegistering) {
+            const name = email.split('@')[0];
+            res = await signUp(email, password, name);
+        } else {
+            res = await signIn(email, password);
+        }
+
+        btnAuthSubmit.disabled = false;
+        btnAuthSubmit.innerText = isRegistering ? 'Cadastrar' : 'Entrar';
+
+        if (res.error) {
+            authError.innerText = res.error.message || 'Erro ao autenticar.';
+            authError.style.display = 'block';
+        } else {
+            checkAuthAndLoad();
+        }
+    };
+}
+
+const btnLogout = document.getElementById('btn-logout');
+if (btnLogout) {
+    btnLogout.onclick = async () => {
+        await signOut();
+        document.getElementById('auth-view').style.display = 'flex';
+        document.querySelector('.app-container').style.display = 'none';
+    };
+}
+
+async function checkAuthAndLoad() {
+    const { data } = await getSession();
+    if (data && data.session) {
+        document.getElementById('auth-view').style.display = 'none';
+        document.querySelector('.app-container').style.display = 'flex';
+        
+        // Atualiza o nome no painel
+        const userName = data.session.user.user_metadata?.full_name || data.session.user.email.split('@')[0];
+        const nameEl = document.getElementById('user-display-name');
+        if (nameEl) nameEl.innerText = userName;
+
+        initGoogleAuth();
+        loadSettings();
+        renderCategoryManager();
+        populateModalCategories();
+        await loadWallets();
+        loadTransactions();
+    } else {
+        document.getElementById('auth-view').style.display = 'flex';
+        document.querySelector('.app-container').style.display = 'none';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const filter = document.getElementById('global-month-filter');
     if (filter) {
@@ -776,12 +865,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    initGoogleAuth();
-    loadSettings();
-    renderCategoryManager();
-    populateModalCategories();
-    await loadWallets();
-    loadTransactions();
+    checkAuthAndLoad();
 });
 
 // Settings Logic
