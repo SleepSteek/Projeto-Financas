@@ -241,9 +241,12 @@ export async function fetchTransactionEmails(config = {}) {
                 }
             }
 
+            const d = new Date(date);
+            const localDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
             results.push({
                 id: msg.id,
-                date: new Date(date).toISOString().split('T')[0],
+                date: localDateStr,
                 subject: subject.replace('Fwd: ', '').replace('Re: ', ''),
                 senderName: senderName,
                 entityName: entityName,

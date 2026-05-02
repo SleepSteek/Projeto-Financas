@@ -1,4 +1,4 @@
-import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule, getRecurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense, signUp, signIn, signOut, getSession } from './supabase.js?v=1.0.5';
+import { supabase, getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteTransactions, updateTransactionsByDescription, getWallets, addWallet, deleteWallet, getRules, saveRule, getRecurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense, signUp, signIn, signOut, getSession } from './supabase.js?v=1.0.6';
 import { initGoogleAuth, connectGmail, fetchTransactionEmails, isGmailTokenValid } from './gmail.js';
 
 // State
@@ -211,7 +211,10 @@ function renderTransactionTable(txs, elementId, showActions = false) {
                </td>`
             : `<td>${tx.description}</td>`;
 
-        row.innerHTML = `${showActions ? `<td><input type="checkbox" class="tx-checkbox" data-id="${tx.id}"></td>` : ''}<td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td>${descriptionHtml}${showActions ? `<td>${catSelectHtml}</td>` : `<td>${tx.category || 'Geral'}</td>`}<td><span style="background:var(--surface-light);padding:0.25rem 0.5rem;border-radius:0.5rem;font-size:0.75rem;">${walletMap[tx.wallet_id] || '---'}</span></td><td class="amount ${isInc?'income':'expense'}">${isInc?'+':'-'} R$ ${Math.abs(amt).toFixed(2)}</td>${showActions ? `<td><button class="btn-delete" data-id="${tx.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;"><span class="material-symbols-rounded">delete</span></button></td>` : ''}`;
+        const dateParts = tx.date.split('-');
+        const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : new Date(tx.date).toLocaleDateString('pt-BR');
+
+        row.innerHTML = `${showActions ? `<td><input type="checkbox" class="tx-checkbox" data-id="${tx.id}"></td>` : ''}<td>${formattedDate}</td>${descriptionHtml}${showActions ? `<td>${catSelectHtml}</td>` : `<td>${tx.category || 'Geral'}</td>`}<td><span style="background:var(--surface-light);padding:0.25rem 0.5rem;border-radius:0.5rem;font-size:0.75rem;">${walletMap[tx.wallet_id] || '---'}</span></td><td class="amount ${isInc?'income':'expense'}">${isInc?'+':'-'} R$ ${Math.abs(amt).toFixed(2)}</td>${showActions ? `<td><button class="btn-delete" data-id="${tx.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;"><span class="material-symbols-rounded">delete</span></button></td>` : ''}`;
         list.appendChild(row);
     });
     if (showActions) {
@@ -612,8 +615,11 @@ async function runTriage() {
                 suggestedCategory = pastTxForTriage.category;
             }
 
+            const dateParts = email.date.split('-');
+            const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : new Date(email.date).toLocaleDateString('pt-BR');
+
             row.innerHTML = `
-                <td>${new Date(email.date).toLocaleDateString('pt-BR')}</td>
+                <td>${formattedDate}</td>
                 <td title="${email.snippet}">${displayDesc}</td>
                 <td><input type="number" step="0.01" value="${email.amount}" class="triage-amount" style="width:80px;background:var(--surface);border:1px solid var(--glass-border);color:white;padding:0.25rem;"></td>
                 <td>
@@ -935,8 +941,10 @@ document.getElementById('form-transaction').onsubmit = async (e) => {
     const amt = parseFloat(document.getElementById('amount').value);
     const cat = document.getElementById('category').value;
     const type = document.getElementById('type-select').value;
+    const d = new Date();
+    const localDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const tx = { 
-        date: new Date().toISOString().split('T')[0], 
+        date: localDateStr, 
         description: document.getElementById('desc').value, 
         amount: type === 'income' ? Math.abs(amt) : -Math.abs(amt), 
         category: cat, 
