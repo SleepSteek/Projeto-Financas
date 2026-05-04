@@ -188,6 +188,7 @@ async function loadFullTransactions() {
 // Add event listeners for filters
 document.getElementById('filter-wallet')?.addEventListener('change', loadFullTransactions);
 document.getElementById('filter-type')?.addEventListener('change', loadFullTransactions);
+document.getElementById('toggle-net-income')?.addEventListener('change', loadTransactions);
 
 function renderTransactionTable(txs, elementId, showActions = false) {
     const list = document.getElementById(elementId);
@@ -521,15 +522,28 @@ function updateCharts(catTotals, incTotals, txs) {
         }
     });
 
-    const totalInc = Object.values(incTotals).reduce((a, b) => a + b, 0);
+    const useNetIncome = document.getElementById('toggle-net-income')?.checked;
+    const finalIncTotals = {};
+    if (useNetIncome) {
+        for (const cat in incTotals) {
+            const net = incTotals[cat] - (catTotals[cat] || 0);
+            if (net > 0) {
+                finalIncTotals[cat] = net;
+            }
+        }
+    } else {
+        Object.assign(finalIncTotals, incTotals);
+    }
+
+    const totalInc = Object.values(finalIncTotals).reduce((a, b) => a + b, 0);
 
     if (ctxInc) {
         window.chartIncome = new Chart(ctxInc, { 
             type: 'doughnut', 
             data: { 
-                labels: Object.keys(incTotals), 
+                labels: Object.keys(finalIncTotals), 
                 datasets: [{ 
-                    data: Object.values(incTotals), 
+                    data: Object.values(finalIncTotals), 
                     backgroundColor: colors, 
                     borderWidth: 0,
                     hoverOffset: 10

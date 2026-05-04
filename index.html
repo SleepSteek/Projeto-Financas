@@ -159,7 +159,13 @@
                         </div>
                     </div>
                     <div class="card">
-                        <h3>Receitas por Fonte</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="margin: 0;">Receitas por Fonte</h3>
+                            <label style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem; cursor: pointer;" title="Subtrai as despesas da mesma categoria do valor das receitas">
+                                <input type="checkbox" id="toggle-net-income" style="accent-color: var(--primary); cursor: pointer;">
+                                Líquido
+                            </label>
+                        </div>
                         <div style="height: 300px; margin-top: 1rem;">
                             <canvas id="incomeChart"></canvas>
                         </div>
