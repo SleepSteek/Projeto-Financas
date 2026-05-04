@@ -99,7 +99,8 @@ export async function getTransactions() {
             .from('transactions')
             .select('*')
             .eq('user_id', userId)
-            .order('date', { ascending: false });
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false });
 
         if (error) throw error;
         return data;

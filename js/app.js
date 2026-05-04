@@ -193,6 +193,7 @@ function renderTransactionTable(txs, elementId, showActions = false) {
     const list = document.getElementById(elementId);
     if (!list) return;
     list.innerHTML = '';
+    let lastDate = null;
     txs.forEach(tx => {
         const amt = parseFloat(tx.amount);
         const isInc = amt > 0;
@@ -213,6 +214,14 @@ function renderTransactionTable(txs, elementId, showActions = false) {
 
         const dateParts = tx.date.split('-');
         const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : new Date(tx.date).toLocaleDateString('pt-BR');
+
+        if (formattedDate !== lastDate) {
+            const separatorRow = document.createElement('tr');
+            const colSpan = showActions ? 7 : 4;
+            separatorRow.innerHTML = `<td colspan="${colSpan}" style="padding: 1rem 0.5rem 0.25rem; font-size: 0.75rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--glass-border); text-transform: uppercase; letter-spacing: 0.05em; background: transparent;">${formattedDate}</td>`;
+            list.appendChild(separatorRow);
+            lastDate = formattedDate;
+        }
 
         row.innerHTML = `${showActions ? `<td><input type="checkbox" class="tx-checkbox" data-id="${tx.id}"></td>` : ''}<td>${formattedDate}</td>${descriptionHtml}${showActions ? `<td>${catSelectHtml}</td>` : `<td>${tx.category || 'Geral'}</td>`}<td><span style="background:var(--surface-light);padding:0.25rem 0.5rem;border-radius:0.5rem;font-size:0.75rem;">${walletMap[tx.wallet_id] || '---'}</span></td><td class="amount ${isInc?'income':'expense'}">${isInc?'+':'-'} R$ ${Math.abs(amt).toFixed(2)}</td>${showActions ? `<td><button class="btn-delete" data-id="${tx.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;"><span class="material-symbols-rounded">delete</span></button></td>` : ''}`;
         list.appendChild(row);
