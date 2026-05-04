@@ -32,10 +32,10 @@ function getCustomCategories() {
 
 function getAllCategories() {
     const custom = getCustomCategories();
-    // Merge defaults + custom, deduplicated, preserving order
+    // Merge defaults + custom, deduplicated, and sort alphabetically
     const all = [...DEFAULT_CATEGORIES];
     custom.forEach(c => { if (!all.includes(c)) all.push(c); });
-    return all;
+    return all.sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }
 
 function addCustomCategory(name) {
