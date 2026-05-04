@@ -356,6 +356,7 @@ async function commitDescriptionEdit(txId, originalDesc, newDesc, textSpan, disp
 function updateDashboardStats(txs) {
     let bal = 0, inc = 0, exp = 0;
     const catTotals = {};
+    const incTotals = {};
     const walletTotals = {};
     const walletMonthInc = {};
     const walletMonthExp = {};
@@ -375,10 +376,11 @@ function updateDashboardStats(txs) {
         if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
             if (amt > 0) {
                 inc += amt;
+                incTotals[tx.category || 'Geral'] = (incTotals[tx.category || 'Geral'] || 0) + amt;
                 if (tx.wallet_id) walletMonthInc[tx.wallet_id] = (walletMonthInc[tx.wallet_id] || 0) + amt;
             } else {
                 exp += Math.abs(amt);
-                catTotals[tx.category] = (catTotals[tx.category] || 0) + Math.abs(amt);
+                catTotals[tx.category || 'Geral'] = (catTotals[tx.category || 'Geral'] || 0) + Math.abs(amt);
                 if (tx.wallet_id) walletMonthExp[tx.wallet_id] = (walletMonthExp[tx.wallet_id] || 0) + Math.abs(amt);
             }
         }
@@ -421,17 +423,19 @@ function updateDashboardStats(txs) {
         });
     }
 
-    updateCharts(catTotals, txs);
+    updateCharts(catTotals, incTotals, txs);
 }
 
-function updateCharts(catTotals, txs) {
+function updateCharts(catTotals, incTotals, txs) {
     const ctxMain = document.getElementById('mainChart')?.getContext('2d');
     const ctxCat = document.getElementById('categoryChart')?.getContext('2d');
+    const ctxInc = document.getElementById('incomeChart')?.getContext('2d');
     if (!ctxMain || !ctxCat) return;
 
     // Limpar gráficos existentes para evitar bugs de hover
     if (window.chartLine) window.chartLine.destroy();
     if (window.chartPie) window.chartPie.destroy();
+    if (window.chartIncome) window.chartIncome.destroy();
 
     // --- Lógica do Gráfico de Fluxo de Caixa (Mensal acumulado por Carteira) ---
     const today = new Date();
@@ -516,6 +520,40 @@ function updateCharts(catTotals, txs) {
             }
         }
     });
+
+    const totalInc = Object.values(incTotals).reduce((a, b) => a + b, 0);
+
+    if (ctxInc) {
+        window.chartIncome = new Chart(ctxInc, { 
+            type: 'doughnut', 
+            data: { 
+                labels: Object.keys(incTotals), 
+                datasets: [{ 
+                    data: Object.values(incTotals), 
+                    backgroundColor: colors, 
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', usePointStyle: true, padding: 20 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const percentage = totalInc > 0 ? ((value / totalInc) * 100).toFixed(1) : 0;
+                                return ` ${context.label}: ${percentage}% (R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     window.chartLine = new Chart(ctxMain, { 
         type: 'line', 
