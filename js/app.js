@@ -603,7 +603,9 @@ function updateCharts(catTotals, incTotals, txs) {
 
 // Triage Logic (The "Pilot" Brain)
 async function runTriage() {
-    const sender = document.getElementById('sync-sender').value;
+    const senderInput = document.getElementById('sync-sender');
+    const sender = senderInput.value;
+    localStorage.setItem('last-sync-sender', sender);
     const period = document.getElementById('sync-period').value;
     const resultsList = document.getElementById('sync-results-list');
     resultsList.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;">Analisando e-mails com Piloto Automático...</td></tr>';
@@ -930,6 +932,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadRecurringExpenses();
             }
         });
+    }
+
+    const lastSender = localStorage.getItem('last-sync-sender');
+    const senderInput = document.getElementById('sync-sender');
+    if (lastSender && senderInput) {
+        senderInput.value = lastSender;
     }
 
     checkAuthAndLoad();
